@@ -142,7 +142,7 @@
     '전장 ' + fmt(L) + ' × 폭 ' + fmt(W) + ' · 벽 ' + fmt(M.wall) + ' · 마룻대 상단 ' + fmt(M.apex) + ' · 최고 ' + fmt(M.top) + ' (각관 상면 = 0) · 현무암 데크 5,500 × 9,500 · 문 = 남 · 뒤 벽 = 서(본채)';
 
   const COLOR = {
-    '갈색방부목 2x4': 0xd9b98a, '갈색방부목 2x6': 0xb98a55, '갈색방부목 창호재': 0xefe0c4,
+    '갈색방부목 2x4': 0xd9b98a, '갈색방부목 2x6': 0xb98a55, '갈색방부목 2x8': 0xa87a48, '갈색방부목 창호재': 0xefe0c4,
     '각관강재': 0x8f9aa2, '아연도 스트랩 30x1.2T': 0x3b4a56, '방부 쫄대 15x38': 0x8a5a36,
     '폴리카': 0x9fd0e6, '폴리카 10T복층': 0x8ec3dd, '시멘트보드 9T': 0x7a7f7c,
     '방충망 (알루미늄 망)': 0x6b7f8a, '아이볼트 M8 스테인리스': 0xb0b8bf, '앵커 M10x100': 0x6d7378,
@@ -523,5 +523,6 @@
   applyTheme();
   resize();
   document.querySelector('#right button[data-v="iso1"]').classList.add('on');
+  window.__V = { meshes, render, place, flyTo, gotoSlide, SL, tl, applyTL: () => applyTL(true), setPanel, sun, cam: () => ({ theta, phi, radius, target }), setCam: (th, ph, r, tg) => { theta = th; phi = ph; radius = r; if (tg) target.set(tg[0], tg[1], tg[2]); place(); render(); }, THREE, scene, renderer };   // 자동화용 (설명서 그림 뽑기)
 })();
 </script>

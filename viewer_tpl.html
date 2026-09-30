@@ -1,0 +1,417 @@
+<title>홍천 온실 골조 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #eef0ec; --panel: #ffffff; --ink: #1f2a24; --muted: #5e6b63; --line: #d3d8d1;
+    --accent: #b0522b; --accent-ink: #ffffff; --sky: #dfe6e0; --ground: #cfd6cd;
+    --chip: #f3f5f1; --focus: #2a6f97; --hi: #b0522b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #1b1f1c; --panel: #242926; --ink: #e9ece7; --muted: #a2aba4; --line: #3a413c;
+      --accent: #d9784f; --accent-ink: #1b1f1c; --sky: #2a302c; --ground: #1f2421;
+      --chip: #2c322e; --focus: #7fb4d3; --hi: #d9784f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1b1f1c; --panel: #242926; --ink: #e9ece7; --muted: #a2aba4; --line: #3a413c;
+    --accent: #d9784f; --accent-ink: #1b1f1c; --sky: #2a302c; --ground: #1f2421;
+    --chip: #2c322e; --focus: #7fb4d3; --hi: #d9784f;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans KR", "Malgun Gothic", system-ui, sans-serif; font-size: 14px; overflow: hidden; }
+  #app { position: fixed; inset: 0; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); display: grid; grid-template-rows: auto 1fr; }
+  header { display: flex; align-items: center; gap: 14px; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: 0.01em; }
+  .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  header .rev { font-size: 12px; color: var(--muted); }
+  header .dims { font-size: 12px; color: var(--muted); margin-left: auto; }
+  #stage { position: relative; min-height: 0; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+  canvas:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+  .panel { position: absolute; background: color-mix(in srgb, var(--panel) 93%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; backdrop-filter: blur(4px); }
+  .panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 500; }
+  #left { left: 12px; top: 12px; width: 210px; max-height: calc(100% - 24px); overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+  .sec { border-top: 1px solid var(--line); padding-top: 8px; }
+  .sec:first-child { border-top: 0; padding-top: 0; }
+  label.row { display: flex; align-items: center; gap: 8px; padding: 3px 0; cursor: pointer; }
+  label.row .sw { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.25); flex: none; }
+  label.row .cnt { margin-left: auto; font-size: 11px; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=search], input[type=text] { font: inherit; width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--chip); color: var(--ink); }
+  input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .small { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+  .val { font-size: 12px; }
+  #right { right: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  #right .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 12.5px; padding: 5px 9px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 4px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  #tip { position: absolute; pointer-events: none; display: none; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; max-width: 280px; }
+  #tip .n, #pin .n { font-weight: 600; }
+  #tip .d, #pin .d { font-size: 11.5px; color: var(--muted); }
+  #pin { left: 12px; bottom: 12px; max-width: 340px; font-size: 12.5px; line-height: 1.45; }
+  #pin:empty { display: none; }
+  #help { right: 12px; bottom: 12px; font-size: 11.5px; color: var(--muted); line-height: 1.5; text-align: right; }
+  .dl { position: absolute; pointer-events: none; transform: translate(-50%, -50%); font-size: 11.5px; padding: 1px 5px; border-radius: 3px; background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--hi); font-weight: 500; white-space: nowrap; }
+  @media (max-width: 720px) {
+    #left { width: 160px; font-size: 12.5px; }
+    #help { display: none; }
+    #right { right: 8px; top: 8px; }
+    header .dims { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="app">
+  <header>
+    <h1>홍천 목조 온실 · 골조 3D</h1>
+    <span class="rev mono" id="rev"></span>
+    <span class="dims mono" id="dims"></span>
+  </header>
+  <div id="stage">
+    <canvas id="c" tabindex="0" aria-label="골조 3D 화면 — 드래그로 돌리고 휠로 확대"></canvas>
+    <div id="labels"></div>
+    <div class="panel" id="left">
+      <div class="sec"><h2>보이는 것</h2><div id="layerlist"></div>
+        <label class="row"><input type="checkbox" id="edges" checked><span>모서리 선</span></label>
+        <label class="row"><input type="checkbox" id="shadow" checked><span>그림자</span></label>
+        <label class="row"><input type="checkbox" id="ortho"><span>직교 투영</span></label>
+        <label class="row"><input type="checkbox" id="dimsOn"><span>전체 치수</span></label>
+      </div>
+      <div class="sec"><h2>조립 순서</h2>
+        <input type="range" id="step" min="0" max="0" value="0" aria-label="조립 단계">
+        <div class="val" id="stepLab"></div>
+        <div class="small">끌어서 공정 순서대로 쌓아 본다. 끝까지 = 전부.</div>
+      </div>
+      <div class="sec"><h2>단면 자르기</h2>
+        <div class="small">남 → 북 (x)</div>
+        <input type="range" id="cutx" min="0" max="100" value="100" aria-label="x 단면">
+        <div class="small">앞 → 뒤 (y)</div>
+        <input type="range" id="cuty" min="0" max="100" value="100" aria-label="y 단면">
+        <div class="val mono" id="cutLab"></div>
+      </div>
+      <div class="sec"><h2>부재 찾기</h2>
+        <input type="search" id="q" placeholder="RF-01 · 서까래 · 겹깔도리 …" aria-label="부재 이름 또는 번호">
+        <label class="row"><input type="checkbox" id="ghost" checked><span>나머지 흐리게</span></label>
+        <div class="small" id="qres"></div>
+      </div>
+    </div>
+    <div class="panel" id="right"><h2>보는 방향</h2>
+      <div class="row">
+        <button data-v="iso1">등각 · 문 쪽</button><button data-v="iso2">등각 · 난로 쪽</button>
+      </div>
+      <div class="row">
+        <button data-v="south">남 (문)</button><button data-v="north">북 (난로)</button><button data-v="front">앞 벽</button><button data-v="back">뒤 벽</button><button data-v="top">위</button><button data-v="inside">안에서</button>
+      </div>
+    </div>
+    <div class="panel" id="tip"></div>
+    <div class="panel" id="pin"></div>
+    <div id="help">드래그 회전 · 휠 확대 · 우클릭/Shift 드래그 이동 · 클릭 = 고정 · 화살표/+/− 키<br>두 번 클릭 = 그 부재로 중심 이동</div>
+  </div>
+</div>
+
+<script id="model" type="application/json">__MODEL__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  const M = JSON.parse(document.getElementById('model').textContent);
+  const L = M.L, W = M.W;
+  const fmt = v => Math.round(v).toLocaleString('en-US');
+  document.getElementById('rev').textContent = M.rev + ' · ' + M.date;
+  document.getElementById('dims').textContent =
+    '전장 ' + fmt(L) + ' × 폭 ' + fmt(W) + ' · 벽 ' + fmt(M.wall) + ' · 마룻대 상단 ' + fmt(M.apex) + ' · 최고 ' + fmt(M.top) + ' (각관 상면 = 0)';
+
+  const COLOR = {
+    '갈색방부목 2x4': 0xd9b98a, '갈색방부목 2x6': 0xb98a55, '갈색방부목 창호재': 0xefe0c4,
+    '각관강재': 0x8f9aa2, '아연도 스트랩 30x1.2T': 0x3b4a56, '방부 쫄대 15x38': 0x8a5a36,
+    '폴리카': 0x9fd0e6, '폴리카 10T복층': 0x8ec3dd, '시멘트보드 9T': 0x7a7f7c,
+    '방충망 (알루미늄 망)': 0x6b7f8a, '아이볼트 M8 스테인리스': 0xb0b8bf, '앵커 M10x100': 0x6d7378,
+    '참고': 0x4a4f52,
+  };
+  const TRANSL = { '폴리카': 0.45, '폴리카 10T복층': 0.5, '참고': 0.8 };
+  const DEFAULT_ON = [true, true, true, true, true, true, false, false, false, false, false];
+
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+  const scene = new THREE.Scene();
+  const persp = new THREE.PerspectiveCamera(38, 1, 50, 80000);
+  const orthoCam = new THREE.OrthographicCamera(-1, 1, 1, -1, -80000, 80000);
+  let camera = persp;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x6f7a70, 0.8));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+  sun.position.set(-3500, 7000, 4500);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  const sc = sun.shadow.camera; sc.left = -4500; sc.right = 4500; sc.top = 4500; sc.bottom = -4500; sc.near = 500; sc.far = 20000;
+  sun.shadow.bias = -0.0005;
+  scene.add(sun);
+  const sun2 = new THREE.DirectionalLight(0xffffff, 0.22);
+  sun2.position.set(4000, 2000, -3000);
+  scene.add(sun2);
+
+  // 모델 (x 전장 · y 폭 · z 높이) → three (x, z, -y) · 가운데가 원점
+  const P = v => new THREE.Vector3(v[0] - L / 2, v[2], -(v[1] - W / 2));
+
+  // 단면 자르기 — 자르는 면 밖은 안 그린다
+  const cutX = new THREE.Plane(new THREE.Vector3(-1, 0, 0), L / 2 + 1);     // x <= 값
+  const cutY = new THREE.Plane(new THREE.Vector3(0, 0, 1), W / 2 + 1);      // y <= 값 (three z = -y)
+  const CLIP = [cutX, cutY];
+
+  const layerGroups = M.layers.map(() => new THREE.Group());
+  layerGroups.forEach(g => scene.add(g));
+  const meshes = [];
+  const counts = M.layers.map(() => 0);
+
+  for (const part of M.parts) {
+    const k = part.k, V = part.v.map(P);
+    const A = V.slice(0, k), B = V.slice(k, 2 * k);
+    const pos = [];
+    const tri = (a, b, c) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+    for (let i = 1; i < k - 1; i++) { tri(A[0], A[i], A[i + 1]); tri(B[0], B[i + 1], B[i]); }
+    for (let i = 0; i < k; i++) { const j = (i + 1) % k; tri(A[i], B[i], B[j]); tri(A[i], B[j], A[j]); }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    const col = COLOR[part.m] !== undefined ? COLOR[part.m] : 0xcccccc;
+    const op = TRANSL[part.m];
+    const mat = new THREE.MeshLambertMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: op !== undefined ? op : 1, depthWrite: op === undefined, clippingPlanes: CLIP });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = op === undefined; mesh.receiveShadow = true;
+    mesh.userData = part;
+    part.op = op !== undefined ? op : 1;
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: 0x2b2f2c, transparent: true, opacity: op !== undefined ? 0.35 : 0.75, clippingPlanes: CLIP }));
+    mesh.add(edges);
+    mesh.userData.edges = edges;
+    layerGroups[part.l].add(mesh);
+    meshes.push(mesh);
+    counts[part.l]++;
+  }
+
+  const getCss = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#cccccc';
+  const gnd = new THREE.Mesh(new THREE.PlaneGeometry(L + 2400, W + 2400), new THREE.MeshLambertMaterial({ color: getCss('--ground') }));
+  gnd.rotation.x = -Math.PI / 2; gnd.position.y = M.gl; gnd.receiveShadow = true; scene.add(gnd);
+  const gridH = new THREE.GridHelper(Math.max(L, W) + 2400, Math.round((Math.max(L, W) + 2400) / 500), 0x9aa39c, 0xb9c1ba);
+  gridH.position.y = M.gl + 1; scene.add(gridH);
+  const doorMark = new THREE.Mesh(new THREE.BoxGeometry(40, 10, W + 400), new THREE.MeshBasicMaterial({ color: 0xb0522b }));
+  doorMark.position.set(-L / 2 - 400, M.gl + 6, 0); scene.add(doorMark);
+
+  function applyTheme() { scene.background = new THREE.Color(getCss('--sky')); gnd.material.color.set(getCss('--ground')); render(); }
+  if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {} }
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // ── 전체 치수 (선 + 글자)
+  const dimGroup = new THREE.Group(); dimGroup.visible = false; scene.add(dimGroup);
+  const dimLabels = [];
+  const labelsDiv = document.getElementById('labels');
+  function dim(a, b, text, off) {
+    const pa = P(a).add(off), pb = P(b).add(off);
+    const g = new THREE.BufferGeometry().setFromPoints([pa, pb, P(a), pa, P(b), pb]);
+    dimGroup.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xb0522b })));
+    const el = document.createElement('div'); el.className = 'dl mono'; el.textContent = text; labelsDiv.appendChild(el);
+    dimLabels.push({ el, at: pa.clone().add(pb).multiplyScalar(0.5) });
+  }
+  dim([0, 0, M.gl], [L, 0, M.gl], '전장 ' + fmt(L), new THREE.Vector3(0, 0, 900));
+  dim([0, 0, M.gl], [0, W, M.gl], '폭 ' + fmt(W), new THREE.Vector3(-900, 0, 0));
+  dim([L, 0, 0], [L, 0, M.wall], '벽 ' + fmt(M.wall) + ' (각관 상면에서)', new THREE.Vector3(700, 0, 700));
+  dim([0, W / 2, 0], [0, W / 2, M.apex], '마룻대 상단 ' + fmt(M.apex), new THREE.Vector3(-700, 0, 0));
+  dim([L, W, M.gl], [L, W, M.top], '최고 ' + fmt(M.top) + ' (판석에서 ' + fmt(M.top - M.gl) + ')', new THREE.Vector3(700, 0, -700));
+  function placeLabels() {
+    const on = dimGroup.visible;
+    const r = canvas.getBoundingClientRect();
+    for (const d of dimLabels) {
+      if (!on) { d.el.style.display = 'none'; continue; }
+      const v = d.at.clone().project(camera);
+      d.el.style.display = v.z < 1 ? 'block' : 'none';
+      d.el.style.left = ((v.x + 1) / 2 * r.width) + 'px';
+      d.el.style.top = ((1 - v.y) / 2 * r.height) + 'px';
+    }
+  }
+
+  // ── 층 · 옵션
+  const list = document.getElementById('layerlist');
+  M.layers.forEach((lab, i) => {
+    const lb = document.createElement('label'); lb.className = 'row';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'layer' + i; cb.checked = DEFAULT_ON[i];
+    const sw = document.createElement('span'); sw.className = 'sw';
+    const first = M.parts.find(p => p.l === i);
+    sw.style.background = '#' + (first && COLOR[first.m] !== undefined ? COLOR[first.m] : 0xcccccc).toString(16).padStart(6, '0');
+    const tx = document.createElement('span'); tx.textContent = lab;
+    const ct = document.createElement('span'); ct.className = 'cnt mono'; ct.textContent = counts[i];
+    lb.append(cb, sw, tx, ct); list.appendChild(lb);
+    layerGroups[i].visible = cb.checked;
+    cb.addEventListener('change', () => { layerGroups[i].visible = cb.checked; render(); });
+  });
+  document.getElementById('edges').addEventListener('change', e => { meshes.forEach(m => m.userData.edges.visible = e.target.checked); render(); });
+  document.getElementById('shadow').addEventListener('change', e => { sun.castShadow = e.target.checked; meshes.forEach(m => m.material.needsUpdate = true); render(); });
+  document.getElementById('ortho').addEventListener('change', e => { camera = e.target.checked ? orthoCam : persp; resize(); });
+  document.getElementById('dimsOn').addEventListener('change', e => { dimGroup.visible = e.target.checked; render(); });
+
+  // ── 조립 순서
+  const stepEl = document.getElementById('step'), stepLab = document.getElementById('stepLab');
+  stepEl.max = M.steps.length; stepEl.value = M.steps.length;
+  function applyStep() {
+    const s = +stepEl.value;
+    meshes.forEach(m => { m.visible = m.userData.st < s; });
+    stepLab.textContent = s === 0 ? '(아무것도 없음)' : (s >= M.steps.length ? '전부' : '~ 공정 ' + M.steps[s - 1].no + '  ' + M.steps[s - 1].lab);
+    render();
+  }
+  stepEl.addEventListener('input', applyStep);
+  applyStep();
+
+  // ── 단면
+  const cx_ = document.getElementById('cutx'), cy_ = document.getElementById('cuty'), cutLab = document.getElementById('cutLab');
+  function applyCut() {
+    const fx = +cx_.value / 100, fy = +cy_.value / 100;
+    cutX.constant = -L / 2 + fx * L + (fx >= 1 ? 50 : 0);            // -x + c >= 0 → x <= c
+    cutY.constant = W / 2 - (1 - fy) * W + (fy >= 1 ? 50 : 0);       // z + c >= 0 → -y ... y <= fy·W
+    cutLab.textContent = (fx >= 1 ? '' : 'x ≤ ' + fmt(fx * L)) + (fy >= 1 ? '' : (fx >= 1 ? '' : ' · ') + 'y ≤ ' + fmt(fy * W));
+    render();
+  }
+  cx_.addEventListener('input', applyCut); cy_.addEventListener('input', applyCut); applyCut();
+
+  // ── 부재 찾기
+  const q = document.getElementById('q'), qres = document.getElementById('qres'), ghost = document.getElementById('ghost');
+  function applySearch() {
+    const t = q.value.trim().toLowerCase();
+    let n = 0, len = 0;
+    meshes.forEach(m => {
+      const p = m.userData;
+      const hit = t && (p.n.toLowerCase().includes(t) || (p.p && p.p.toLowerCase().includes(t)));
+      if (hit) { n++; len += p.L || 0; }
+      m.material.emissive.setHex(hit ? 0x5a3a12 : 0x000000);
+      const dimmed = t && !hit && ghost.checked;
+      m.material.opacity = dimmed ? Math.min(p.op, 0.12) : p.op;
+      m.userData.edges.material.opacity = dimmed ? 0.06 : (p.op < 1 ? 0.35 : 0.75);
+    });
+    qres.textContent = t ? (n + ' 개' + (len ? ' · 길이 합 ' + fmt(len) : '')) : '';
+    render();
+  }
+  q.addEventListener('input', applySearch); ghost.addEventListener('change', applySearch);
+
+  // ── 카메라
+  const target = new THREE.Vector3(0, M.apex / 2, 0);
+  //  화면 비율에 따라 거리 보정 — 넓은 화면은 가까이, 좁은 화면은 멀리
+  const FIT = () => { const a = canvas.clientWidth / Math.max(1, canvas.clientHeight); return Math.min(1.7, Math.max(0.7, 1.75 / a)); };
+  let theta = -0.75, phi = 1.05, radius = 14500 * FIT();
+  function place() {
+    const x = radius * Math.sin(phi) * Math.sin(theta), y = radius * Math.cos(phi), z = radius * Math.sin(phi) * Math.cos(theta);
+    camera.position.set(target.x + x, target.y + y, target.z + z);
+    camera.up.set(0, 1, 0);
+    camera.lookAt(target);
+    if (camera === orthoCam) {
+      const asp = canvas.clientWidth / Math.max(1, canvas.clientHeight);
+      const h = radius * 0.42;
+      orthoCam.left = -h * asp; orthoCam.right = h * asp; orthoCam.top = h; orthoCam.bottom = -h;
+      orthoCam.updateProjectionMatrix();
+    }
+  }
+  const VIEWS = {
+    iso1: [-0.75, 1.05, 14500], iso2: [Math.PI - 0.75, 1.05, 14500],
+    south: [-Math.PI / 2, Math.PI / 2 - 0.02, 12000], north: [Math.PI / 2, Math.PI / 2 - 0.02, 12000],
+    front: [0, Math.PI / 2 - 0.02, 15000], back: [Math.PI, Math.PI / 2 - 0.02, 15000], top: [-Math.PI / 2, 0.02, 15000],
+    inside: [Math.PI / 2, Math.PI / 2 - 0.15, 1800],
+  };
+  document.querySelectorAll('#right button').forEach(b => b.addEventListener('click', () => {
+    const v = VIEWS[b.dataset.v]; theta = v[0]; phi = v[1]; radius = v[2] * (b.dataset.v === 'inside' ? 1 : FIT());
+    if (b.dataset.v === 'inside') target.set(-L / 2 + 1200, 1400, 0); else target.set(0, M.apex / 2, 0);
+    document.querySelectorAll('#right button').forEach(x => x.classList.toggle('on', x === b));
+    place(); render();
+  }));
+
+  let drag = null, lastTap = 0;
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey, moved: false }; });
+  canvas.addEventListener('pointermove', e => {
+    if (drag) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+      if (drag.pan) {
+        const s = radius / canvas.clientHeight * 1.2;
+        const right = new THREE.Vector3(Math.cos(theta), 0, -Math.sin(theta));
+        target.addScaledVector(right, -dx * s); target.y += dy * s;
+      } else { theta -= dx * 0.006; phi = Math.min(Math.PI - 0.05, Math.max(0.02, phi - dy * 0.006)); }
+      place(); render();
+    } else hover(e);
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (drag && !drag.moved) {
+      const now = Date.now();
+      if (now - lastTap < 350) { const o = under(e); if (o) { const c = center(o.userData); target.copy(c); radius = Math.max(2500, radius * 0.6); place(); } }
+      else pick(e);
+      lastTap = now;
+    }
+    drag = null; render();
+  });
+  canvas.addEventListener('pointercancel', () => { drag = null; });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('wheel', e => { e.preventDefault(); radius = Math.min(50000, Math.max(600, radius * (e.deltaY > 0 ? 1.1 : 0.9))); place(); render(); }, { passive: false });
+  let pinch = null;
+  const dist = e => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  canvas.addEventListener('touchstart', e => { if (e.touches.length === 2) pinch = dist(e); }, { passive: true });
+  canvas.addEventListener('touchmove', e => { if (e.touches.length === 2 && pinch) { const d = dist(e); radius = Math.min(50000, Math.max(600, radius * pinch / d)); pinch = d; place(); render(); } }, { passive: true });
+  canvas.addEventListener('touchend', () => { pinch = null; });
+  canvas.addEventListener('keydown', e => {
+    const k = e.key; let h = true;
+    if (k === 'ArrowLeft') theta += 0.08; else if (k === 'ArrowRight') theta -= 0.08;
+    else if (k === 'ArrowUp') phi = Math.max(0.02, phi - 0.08); else if (k === 'ArrowDown') phi = Math.min(Math.PI - 0.05, phi + 0.08);
+    else if (k === '+' || k === '=') radius *= 0.9; else if (k === '-') radius *= 1.1; else h = false;
+    if (h) { e.preventDefault(); place(); render(); }
+  });
+
+  // ── 집기
+  const ray = new THREE.Raycaster();
+  const tip = document.getElementById('tip'), pin = document.getElementById('pin');
+  let hi = null;
+  function under(e) {
+    const r = canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    const vis = meshes.filter(x => x.visible && x.parent.visible && x.material.opacity > 0.2);
+    const hits = ray.intersectObjects(vis, false).filter(h => CLIP.every(pl => pl.distanceToPoint(h.point) >= -1));
+    return hits.length ? hits[0].object : null;
+  }
+  const rng = (p, i) => [Math.min(...p.v.map(q => q[i])), Math.max(...p.v.map(q => q[i]))];
+  function center(p) { const x = rng(p, 0), y = rng(p, 1), z = rng(p, 2); return P([(x[0] + x[1]) / 2, (y[0] + y[1]) / 2, (z[0] + z[1]) / 2]); }
+  function desc(p) {
+    const x = rng(p, 0), y = rng(p, 1), z = rng(p, 2);
+    const same = p.p ? meshes.filter(m => m.userData.p === p.p).length : 0;
+    return '<div class="n">' + p.n + (p.p ? ' · ' + p.p : '') + '</div>' +
+      '<div class="d mono">' + p.s + (p.L ? ' · 길이 ' + fmt(p.L) : '') + (same > 1 ? ' · 같은 번호 ' + same + ' 개' : '') + '</div>' +
+      '<div class="d mono">x ' + fmt(x[0]) + '~' + fmt(x[1]) + ' · y ' + fmt(y[0]) + '~' + fmt(y[1]) + ' · z ' + fmt(z[0]) + '~' + fmt(z[1]) + '</div>';
+  }
+  function hover(e) {
+    const o = under(e);
+    if (o !== hi) {
+      if (hi && !q.value) hi.material.emissive.setHex(0x000000);
+      hi = o;
+      if (hi) hi.material.emissive.setHex(0x3a2a10);
+      render();
+    }
+    if (o) {
+      tip.innerHTML = desc(o.userData);
+      const r = canvas.getBoundingClientRect();
+      tip.style.left = Math.min(e.clientX - r.left + 14, r.width - 300) + 'px'; tip.style.top = (e.clientY - r.top + 14) + 'px'; tip.style.display = 'block';
+    } else tip.style.display = 'none';
+  }
+  function pick(e) { const o = under(e); pin.innerHTML = o ? desc(o.userData) : ''; }
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w, h, false);
+    persp.aspect = w / Math.max(1, h); persp.updateProjectionMatrix();
+    place(); render();
+  }
+  function render() { renderer.render(scene, camera); placeLabels(); }
+  window.addEventListener('resize', resize);
+  applyTheme();
+  resize();
+  document.querySelector('#right button[data-v="iso1"]').classList.add('on');
+})();
+</script>

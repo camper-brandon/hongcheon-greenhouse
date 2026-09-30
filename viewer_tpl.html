@@ -139,7 +139,7 @@
   const fmt = v => Math.round(v).toLocaleString('en-US');
   document.getElementById('rev').textContent = M.rev + ' · ' + M.date;
   document.getElementById('dims').textContent =
-    '전장 ' + fmt(L) + ' × 폭 ' + fmt(W) + ' · 벽 ' + fmt(M.wall) + ' · 마룻대 상단 ' + fmt(M.apex) + ' · 최고 ' + fmt(M.top) + ' (각관 상면 = 0)';
+    '전장 ' + fmt(L) + ' × 폭 ' + fmt(W) + ' · 벽 ' + fmt(M.wall) + ' · 마룻대 상단 ' + fmt(M.apex) + ' · 최고 ' + fmt(M.top) + ' (각관 상면 = 0) · 현무암 데크 5,500 × 9,500 · 문 = 남 · 뒤 벽 = 서(본채)';
 
   const COLOR = {
     '갈색방부목 2x4': 0xd9b98a, '갈색방부목 2x6': 0xb98a55, '갈색방부목 창호재': 0xefe0c4,
@@ -213,13 +213,21 @@
   }
 
   const getCss = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || '#cccccc';
-  const gnd = new THREE.Mesh(new THREE.PlaneGeometry(L + 2400, W + 2400), new THREE.MeshLambertMaterial({ color: getCss('--ground') }));
-  gnd.rotation.x = -Math.PI / 2; gnd.position.y = M.gl; gnd.receiveShadow = true; scene.add(gnd);
-  const gridH = new THREE.GridHelper(Math.max(L, W) + 2400, Math.round((Math.max(L, W) + 2400) / 500), 0x9aa39c, 0xb9c1ba);
-  gridH.position.y = M.gl + 1; scene.add(gridH);
-  const doorMark = new THREE.Mesh(new THREE.BoxGeometry(40, 10, W + 400), new THREE.MeshBasicMaterial({ color: 0xb0522b }));
-  doorMark.position.set(-L / 2 - 400, M.gl + 6, 0); scene.add(doorMark);
-
+  // ── 바닥 = 실제 현무암 데크 (사용자 실측 · site_plan.py): 판석 500×500 · 11 × 19 = 209 장 · 5,500 × 9,500 · 경계석 100 · 판석 윗면 = 각관 밑 (GL)
+  //    온실 자리: 서(본채) 1,550 · 동(화단) 750 · 북(소나무) 750 · 남(남는 데크) 3,612.  문(x=0) = 남쪽 → 북이 위인 평면에서 서는 왼쪽 = 모델 y 큰 쪽 → 뒤 벽(y=W) = 서 · 앞 벽(y=0) = 동.
+  const PS = 500, NX = 11, NY = 19, KERB = 100, EASTP = 750, SOUTHP = 3612;
+  const dk = (i, j) => P([j * PS - SOUTHP, i * PS - EASTP, M.gl]);                    // 판석 (i 동→서 · j 남→북) 남동 모서리
+  const gnd = new THREE.Mesh(new THREE.PlaneGeometry(60000, 60000), new THREE.MeshLambertMaterial({ color: getCss('--ground') }));
+  gnd.rotation.x = -Math.PI / 2; gnd.position.y = M.gl - 22; gnd.receiveShadow = true; scene.add(gnd);
+  const dkC = dk(NX / 2, NY / 2);
+  const joint = new THREE.Mesh(new THREE.BoxGeometry(NY * PS, 16, NX * PS), new THREE.MeshLambertMaterial({ color: 0x5b6166 }));
+  joint.position.set(dkC.x, M.gl - 12, dkC.z); joint.receiveShadow = true; scene.add(joint);
+  const kerb = new THREE.Mesh(new THREE.BoxGeometry(NY * PS + 2 * KERB, 40, NX * PS + 2 * KERB), new THREE.MeshLambertMaterial({ color: 0x37474f }));
+  kerb.position.set(dkC.x, M.gl - 21, dkC.z); kerb.receiveShadow = true; scene.add(kerb);
+  const stones = new THREE.InstancedMesh(new THREE.BoxGeometry(PS - 8, 30, PS - 8), new THREE.MeshLambertMaterial({ color: 0x8d9499 }), NX * NY);
+  { const m4 = new THREE.Matrix4(); let n = 0;
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++) { const c = dk(i + 0.5, j + 0.5); m4.makeTranslation(c.x, M.gl - 15, c.z); stones.setMatrixAt(n++, m4); } }
+  stones.receiveShadow = true; scene.add(stones);
   function applyTheme() { scene.background = new THREE.Color(getCss('--sky')); gnd.material.color.set(getCss('--ground')); render(); }
   if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {} }
   new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
@@ -240,6 +248,13 @@
   dim([L, 0, 0], [L, 0, M.wall], '벽 ' + fmt(M.wall) + ' (각관 상면에서)', new THREE.Vector3(700, 0, 700));
   dim([0, W / 2, 0], [0, W / 2, M.apex], '마룻대 상단 ' + fmt(M.apex), new THREE.Vector3(-700, 0, 0));
   dim([L, W, M.gl], [L, W, M.top], '최고 ' + fmt(M.top) + ' (판석에서 ' + fmt(M.top - M.gl) + ')', new THREE.Vector3(700, 0, -700));
+  //  데크 (모델 좌표: 데크 남서 모서리 = (−3,612, −1,550))
+  dim([-SOUTHP, -EASTP, M.gl], [-SOUTHP, -EASTP + NX * PS, M.gl], '데크 5,500 (판석 11 장)', new THREE.Vector3(0, 0, 600));
+  dim([-SOUTHP, -EASTP + NX * PS, M.gl], [-SOUTHP + NY * PS, -EASTP + NX * PS, M.gl], '데크 9,500 (판석 19 장)', new THREE.Vector3(-600, 0, 0));
+  dim([0, -EASTP, M.gl], [0, 0, M.gl], '동 · 화단 쪽 750', new THREE.Vector3(-300, 0, 0));
+  dim([0, W, M.gl], [0, -EASTP + NX * PS, M.gl], '서 · 본채 쪽 1,550', new THREE.Vector3(-300, 0, 0));
+  dim([L, W / 2, M.gl], [-SOUTHP + NY * PS, W / 2, M.gl], '북 · 소나무 쪽 750', new THREE.Vector3(0, 0, 0));
+  dim([-SOUTHP, W / 2, M.gl], [0, W / 2, M.gl], '남 · 남는 데크 3,612', new THREE.Vector3(0, 0, 0));
   function placeLabels() {
     const on = dimGroup.visible;
     const r = canvas.getBoundingClientRect();

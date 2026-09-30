@@ -44,6 +44,11 @@
   input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
   .small { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
   .val { font-size: 12px; }
+  .nav { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+  .nav button { flex: 0 0 auto; padding: 3px 8px; }
+  .scap { flex: 1 1 auto; font-size: 12.5px; line-height: 1.3; min-height: 2.6em; }
+  .card { font-size: 12px; line-height: 1.35; border-left: 3px solid var(--accent); padding: 4px 8px; margin-top: 6px; min-height: 3.9em; }
+  .card .no { color: var(--accent); font-weight: 700; }
   #right { right: 12px; top: 12px; display: flex; flex-direction: column; gap: 6px; }
   #right .row { display: flex; gap: 6px; flex-wrap: wrap; }
   button { font: inherit; font-size: 12.5px; padding: 5px 9px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 4px; cursor: pointer; }
@@ -90,10 +95,13 @@
         <label class="row"><input type="checkbox" id="ortho"><span>직교 투영</span></label>
         <label class="row"><input type="checkbox" id="dimsOn"><span>전체 치수</span></label>
       </div>
-      <div class="sec"><h2>조립 순서</h2>
-        <input type="range" id="step" min="0" max="0" value="0" aria-label="조립 단계">
-        <div class="val" id="stepLab"></div>
-        <div class="small">끌어서 공정 순서대로 쌓아 본다. 끝까지 = 전부.</div>
+      <div class="sec" id="slidesec"><h2>조립 슬라이드</h2>
+        <div class="nav"><button id="sPrev" title="이전 공정 ( [ 키 )">◀</button><div class="scap" id="sCap"></div><button id="sNext" title="다음 공정 ( ] 키 )">▶</button></div>
+        <div class="small mono" id="sIdx"></div>
+        <input type="range" id="tl" min="0" max="0" value="0" aria-label="부재 타임라인">
+        <div class="nav"><button id="tPlay" title="재생 / 멈춤 (스페이스)">▶ 재생</button><button id="tPrev" title="부재 하나 앞 ( , )">−1</button><button id="tNext" title="부재 하나 뒤 ( . )">+1</button><span class="small mono" id="tIdx"></span></div>
+        <div class="card" id="tCard"></div>
+        <div class="small"><a href="video.html">조립 영상 (mp4) 보기 →</a></div>
       </div>
       <div class="sec"><h2>단면 자르기</h2>
         <div class="small">남 → 북 (x)</div>
@@ -118,7 +126,7 @@
     </div>
     <div class="panel" id="tip"></div>
     <div class="panel" id="pin"></div>
-    <div id="help">드래그 회전 · 휠 확대 · 우클릭/Shift 드래그 이동 · 클릭 = 고정 · 화살표/+/− 키<br>두 번 클릭 = 그 부재로 중심 이동 · 키 1/2 = 패널 · H = 전부 숨김</div>
+    <div id="help">드래그 회전 · 휠 확대 · 우클릭/Shift 드래그 이동 · 클릭 = 고정 · 화살표/+/− 키<br>두 번 클릭 = 그 부재로 중심 이동 · [ ] = 공정 슬라이드 · 스페이스 = 재생 · , . = 부재 하나씩 · 키 1/2 = 패널 · H = 전부 숨김</div>
   </div>
 </div>
 
@@ -263,17 +271,73 @@
   document.getElementById('ortho').addEventListener('change', e => { camera = e.target.checked ? orthoCam : persp; resize(); });
   document.getElementById('dimsOn').addEventListener('change', e => { dimGroup.visible = e.target.checked; render(); });
 
-  // ── 조립 순서
-  const stepEl = document.getElementById('step'), stepLab = document.getElementById('stepLab');
-  stepEl.max = M.steps.length; stepEl.value = M.steps.length;
-  function applyStep() {
-    const s = +stepEl.value;
-    meshes.forEach(m => { m.visible = m.userData.st < s; });
-    stepLab.textContent = s === 0 ? '(아무것도 없음)' : (s >= M.steps.length ? '전부' : '~ 공정 ' + M.steps[s - 1].no + '  ' + M.steps[s - 1].lab);
+  // ── 조립 슬라이드 · 부재 타임라인 (순서 = 영상과 동일 · 참고 부재는 맨 끝)
+  const tl = document.getElementById('tl'), tIdx = document.getElementById('tIdx'), tCard = document.getElementById('tCard'), tPlay = document.getElementById('tPlay');
+  const sCap = document.getElementById('sCap'), sIdx = document.getElementById('sIdx');
+  const N = M.seqn, SL = M.slides;
+  tl.max = N; tl.value = N;
+  let cur = N, slide = SL.length - 1, playing = null, flash = null;
+  function slideOf(i) { if (i >= N) return SL.length - 1; let s = 0; for (let k = 0; k < SL.length; k++) if (i > SL[k].i0) s = k; return s; }
+  function applyTL(fromSlide) {
+    cur = Math.max(0, Math.min(N, Math.round(+tl.value)));
+    meshes.forEach(m => { const o = m.userData.o; m.visible = o < 0 ? cur >= N : o < cur; });
+    if (flash) { flash.material.emissive.setHex(0x000000); flash = null; }
+    if (cur > 0 && cur <= N) {
+      const last = meshes.find(m => m.userData.o === cur - 1);
+      if (last && cur < N) { flash = last; flash.material.emissive.setHex(0x6a3f12); }
+      const q = M.seq[cur - 1];
+      tCard.innerHTML = '<div class="no">' + (q.p || '—') + '</div><div>' + q.name + '</div><div class="mono">' + (q.L ? '길이 ' + fmt(q.L) + ' · ' : '') + q.s + '</div>';
+    } else tCard.innerHTML = '<div class="no">—</div><div>(아직 아무것도 없음)</div><div class="mono">&nbsp;</div>';
+    tIdx.textContent = cur + ' / ' + N;
+    if (!fromSlide) { const s = slideOf(cur); if (s !== slide) { slide = s; showSlide(false); } }
     render();
   }
-  stepEl.addEventListener('input', applyStep);
-  applyStep();
+  function showSlide(move) {
+    const s = SL[slide];
+    sCap.textContent = s.cap; sIdx.textContent = '슬라이드 ' + (slide + 1) + ' / ' + SL.length + ' · 부재 ' + (s.i0 + 1) + '~' + s.i1;
+    if (move) flyTo(s.pos, s.tgt);
+  }
+  function gotoSlide(k, toEnd) {
+    slide = Math.max(0, Math.min(SL.length - 1, k));
+    tl.value = toEnd ? SL[slide].i1 : SL[slide].i0 + 1;
+    applyTL(true); showSlide(true);
+  }
+  //  카메라 날아가기 — three 좌표 pos/tgt → 구면 좌표 (0.6 s)
+  let fly = null;
+  function flyTo(pos, tgt) {
+    const d = new THREE.Vector3(pos[0] - tgt[0], pos[1] - tgt[1], pos[2] - tgt[2]);
+    const r = d.length(), ph = Math.acos(Math.max(-1, Math.min(1, d.y / r))), th = Math.atan2(d.x, d.z);
+    let th0 = theta; while (th - th0 > Math.PI) th0 += 2 * Math.PI; while (th - th0 < -Math.PI) th0 -= 2 * Math.PI;
+    fly = { t0: performance.now(), a: [th0, phi, radius, target.clone()], b: [th, ph, r, new THREE.Vector3(tgt[0], tgt[1], tgt[2])] };
+    const tick = () => {
+      if (!fly) return;
+      const u = Math.min(1, (performance.now() - fly.t0) / 600), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      theta = fly.a[0] + (fly.b[0] - fly.a[0]) * e; phi = fly.a[1] + (fly.b[1] - fly.a[1]) * e; radius = fly.a[2] + (fly.b[2] - fly.a[2]) * e;
+      target.copy(fly.a[3]).lerp(fly.b[3], e);
+      place(); render();
+      if (u < 1) requestAnimationFrame(tick); else fly = null;
+    };
+    requestAnimationFrame(tick);
+  }
+  function setPlay(on) {
+    if (on && cur >= N) { tl.value = 0; applyTL(false); }
+    if (playing) { clearInterval(playing); playing = null; }
+    if (on) playing = setInterval(() => { if (cur >= N) { setPlay(false); return; } tl.value = cur + 1; applyTL(false); }, 250);
+    tPlay.textContent = playing ? '❚❚ 멈춤' : '▶ 재생';
+  }
+  tl.addEventListener('input', () => { setPlay(false); applyTL(false); });
+  document.getElementById('sPrev').addEventListener('click', () => { setPlay(false); gotoSlide(slide - 1, true); });
+  document.getElementById('sNext').addEventListener('click', () => { setPlay(false); gotoSlide(slide + 1, true); });
+  document.getElementById('tPrev').addEventListener('click', () => { setPlay(false); tl.value = cur - 1; applyTL(false); });
+  document.getElementById('tNext').addEventListener('click', () => { setPlay(false); tl.value = cur + 1; applyTL(false); });
+  tPlay.addEventListener('click', () => setPlay(!playing));
+  document.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.key === '[') { setPlay(false); gotoSlide(slide - 1, true); } else if (e.key === ']') { setPlay(false); gotoSlide(slide + 1, true); }
+    else if (e.key === ' ') { e.preventDefault(); setPlay(!playing); }
+    else if (e.key === ',') { setPlay(false); tl.value = cur - 1; applyTL(false); } else if (e.key === '.') { setPlay(false); tl.value = cur + 1; applyTL(false); }
+  });
+  applyTL(true); showSlide(false);
 
   // ── 단면
   const cx_ = document.getElementById('cutx'), cy_ = document.getElementById('cuty'), cutLab = document.getElementById('cutLab');

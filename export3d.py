@@ -138,9 +138,19 @@ ref.append(('참고 · 벽돌 방화벽 90T (스터드 안면에서 25 띄움 ·
 for nm, m, v in ref:
     parts.append(dict(n=nm, p='', L=None, m=m, s='참고 (가정)', l=layer_of('참고'), st=step_of('참고'), k=4, v=v))
 
+# ── 조립 슬라이드 · 부재 타임라인 (assembly_seq.py — 영상과 같은 순서)
+import assembly_seq as AS
+_seq = AS.build()
+ORDER = {p['n']: i for i, p in enumerate(_seq['parts'])}
+for _p in parts:
+    _p['o'] = ORDER.get(_p['n'], -1)                      # −1 = 순서 밖 (참고 부재 · 단면선) → 맨 끝에
+SLIDES = AS.slides(_seq)
+SEQN = len(_seq['parts'])
+SEQ_INFO = [dict(p=p['p'], name=p['name'], L=p['L'], s=p['s'], cap=p['cap']) for p in _seq['parts']]
+
 out = dict(rev=C.REV, date=C.DATE, L=L, W=W, apex=G.APEX, top=G.ROOFTOP, gl=GL,
            wall=G.D['겹깔도리-앞a']['z1'], layers=[lab for lab, _ in LAYER],
-           steps=[dict(no=no, lab=lab) for no, lab, _ in STEP], parts=parts)
+           steps=[dict(no=no, lab=lab) for no, lab, _ in STEP], slides=SLIDES, seqn=SEQN, seq=SEQ_INFO, parts=parts)
 dst = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model3d.json')
 json.dump(out, open(dst, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print('parts', len(parts), 'bytes', os.path.getsize(dst))

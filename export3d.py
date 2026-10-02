@@ -146,8 +146,10 @@ ref = []
 sx1 = XI - BACK
 sx0 = sx1 - ST_D
 sy0, sy1 = W / 2 - ST_W / 2, W / 2 + ST_W / 2
-sz0 = GL                                       # 스탠드 높이 확인 필요 (임시 0)
-ref.append(('참고 · 난로 MX9 410×330×430 (무신사 등록값 · 뒷면~스터드 안면 305 · 벽돌 앞면 190 · 스탠드 높이 확인 필요 — 임시로 바닥)', '참고', boxv(sx0, sx1, sy0, sy1, sz0, sz0 + ST_H)))
+STAND = 700.0                                  # R28f 사용자 「스탠드 높이는 700 정도」
+sz0 = GL + STAND
+ref.append(('참고 · 난로 MX9 410×330×430 (무신사 등록값 · 뒷면~스터드 안면 305 · 벽돌 앞면 190 · 스탠드 위 700)', '참고', boxv(sx0, sx1, sy0, sy1, sz0, sz0 + ST_H)))
+ref.append(('참고 · MX9 전용 스탠드 (높이 700 · 사용자 값 · 모양은 상자로 대신)', '참고', boxv(sx0, sx1, sy0, sy1, GL, sz0)))
 cx, cy = (sx0 + sx1) / 2, W / 2
 FLZ = 1800.0
 ref.append(('참고 · 연통 세로 (80φ) · 벽 관통 1,800', '참고', boxv(cx - FL / 2, cx + FL / 2, cy - FL / 2, cy + FL / 2, sz0 + ST_H, FLZ + FL / 2)))

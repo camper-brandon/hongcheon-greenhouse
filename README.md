@@ -9,7 +9,7 @@
 
 ## 조립 슬라이드 · 영상 (2026-09-30)
 - 뷰어 왼쪽 "조립 슬라이드": 공정 22 슬라이드(◀ ▶ · `[` `]`) + 부재 타임라인 395(슬라이더 · 재생 · `,` `.`). 순서는 `assembly_seq.py` (영상과 동일).
-- `video.html` = 조립 영상 `assembly_v5.mp4` (HyperFrames 렌더 · 2분 12초).
+- `video.html` = 조립 영상 `assembly_v6.mp4` (HyperFrames 렌더 · 2분 52초 · R28).
 - 갱신: `python export3d.py` (assembly_seq 를 불러 순서·슬라이드를 JSON 에 넣는다) → 템플릿 치환 → 커밋.
 
 ## 바닥 = 실측 현무암 데크 (2026-09-30)

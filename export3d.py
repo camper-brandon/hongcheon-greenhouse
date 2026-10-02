@@ -23,7 +23,7 @@ LAYER = [
     ('무릎벽 외장', ('외장합판', '하우스랩', '가로쫄대', '세로쫄대', '세로사이딩', '모서리마감', '문옆마감', 'Z물끊기', '무릎벽방충망')),
     ('폴리카 · 판', ('지붕판', '벽판', '박공판')),
     ('창 · 문 · 방충망', ('창짝', '프로젝트창', '문짝', '문스토퍼', '배기창', '방충망', '창멈춤', '창턱', '물끊기')),
-    ('용마루 캡', ('용마루', '폼밀폐')),
+    ('용마루 캡 · 박공 후레싱', ('용마루', '폼밀폐', '박공후레싱')),
     ('철물', ('아이볼트', '앵커')),
     ('참고 · 난로 (가정)', ('참고',)),
 ]
@@ -47,7 +47,7 @@ STEP = [
     ('12', '벽판 · 박공판 (판 먼저 · 임시 고정)', ('벽판', '박공판')),
     ('13', '벽쫄대 · 박공쫄대 · 창옆쫄대 (판을 누른다)', ('벽쫄대', '박공쫄대', '박공모서리쫄대', '창옆쫄대')),
     ('14', '지붕판 10T (처마→마룻대 한 장 · 벽판 위를 덮는다)', ('지붕판',)),
-    ('15', '지붕쫄대 (홀수 서까래) · 아이볼트 · 용마루 캡', ('지붕쫄대', '아이볼트', '폼밀폐', '용마루')),
+    ('15', '지붕쫄대 (홀수 서까래) · 아이볼트 · 박공 후레싱 · 용마루 캡', ('지붕쫄대', '아이볼트', '박공후레싱', '폼밀폐', '용마루')),
     ('16', '창짝 · 프로젝트창 · 배기창 · 방충망 · 창 멈춤대', ('창짝', '프로젝트창', '배기창', '방충망', '창멈춤', '창턱', '물끊기')),
     ('17', '문짝 → 문스토퍼', ('문짝', '문스토퍼')),
     ('18', '참고 (난로 · 단 · 연통 80φ)', ('참고',)),
@@ -104,6 +104,9 @@ def boxv(x0, x1, y0, y1, z0, z1):
     return a + b
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import halflap as HL
+HLB = HL.apply(G.D, G.D['각관-우']['x1'], G.D['각관-뒤']['y1'], pn.PCIN)     # R28 반턱 · 홈 묻힘 (보기 전용)
 parts = []
 for n, r in G.D.items():
     if not r['m'] or n not in G.V:
@@ -115,8 +118,10 @@ for n, r in G.D.items():
     k = len(V) // 2
     p = pn.OF.get(n, '')
     L_ = pn.TYP[p]['L'] if p in pn.TYP else None
-    parts.append(dict(n=n, p=p, L=L_, m=r['m'], s=size_of(r), l=li, st=step_of(n), k=k,
-                      v=[[round(a, 1), round(b, 1), round(c, 1)] for a, b, c in V]))
+    L_ = pn.cutlen(p) if p in pn.LAP or p in pn.PCW else L_             # R28 반턱 · 홈 포함 길이
+    for VV in ([HL.boxverts(b) for b in HLB[n]] if n in HLB else [V]):
+        parts.append(dict(n=n, p=p, L=L_, m=r['m'], s=size_of(r), l=li, st=step_of(n), k=len(VV) // 2,
+                          v=[[round(a, 1), round(b, 1), round(c, 1)] for a, b, c in VV]))
 
 L = G.D['각관-우']['x1']
 W = G.D['각관-뒤']['y1']
@@ -158,7 +163,8 @@ SLIDES = AS.slides(_seq)
 SEQN = len(_seq['parts'])
 SEQ_INFO = [dict(p=p['p'], name=p['name'], L=p['L'], s=p['s'], cap=p['cap']) for p in _seq['parts']]
 
-out = dict(rev=C.REV, date=C.DATE, L=L, W=W, apex=G.APEX, top=G.ROOFTOP, gl=GL,
+out = dict(rev='R28 · ' + C.REV_WI, date=__import__('datetime').date.today().isoformat(),   # 화면 머리 — 모델 판 (cad.REV 는 실시도면 R24 에 묶여 있다)
+            L=L, W=W, apex=G.APEX, top=G.ROOFTOP, gl=GL,
            wall=G.D['겹깔도리-앞a']['z1'], layers=[lab for lab, _ in LAYER],
            steps=[dict(no=no, lab=lab) for no, lab, _ in STEP], slides=SLIDES, seqn=SEQN, seq=SEQ_INFO, parts=parts)
 dst = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model3d.json')

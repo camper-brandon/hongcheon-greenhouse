@@ -167,7 +167,9 @@ print('parts', len(parts), 'bytes', os.path.getsize(dst))
 
 # R27b — 사이트 화면(index.html) 도 같이 만든다 (전에는 model3d.json 만 갱신돼 화면이 R24c 에 멈춰 있었다)
 import io as _io, json as _json
-_m = _json.load(_io.open('model3d.json', encoding='utf-8'))
-_tpl = _io.open('viewer_tpl.html', encoding='utf-8').read()
-_io.open('index.html', 'w', encoding='utf-8').write(_tpl.replace('__MODEL__', _json.dumps(_m, ensure_ascii=False, separators=(',', ':'))))
+import os as _os
+_H = _os.path.dirname(_os.path.abspath(__file__))
+_m = _json.load(_io.open(_os.path.join(_H, 'model3d.json'), encoding='utf-8'))
+_tpl = _io.open(_os.path.join(_H, 'viewer_tpl.html'), encoding='utf-8').read()
+_io.open(_os.path.join(_H, 'index.html'), 'w', encoding='utf-8').write(_tpl.replace('__MODEL__', _json.dumps(_m, ensure_ascii=False, separators=(',', ':'))))
 print('index.html', len(_m['parts']))

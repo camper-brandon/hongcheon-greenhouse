@@ -78,6 +78,8 @@ def size_of(r):
         return '각관 50×50'
     if '스트랩' in m:
         return '스트랩 30×1.2T'
+    if '1x4' in m:
+        return '1×4 (19×89) 기성'
     if '쫄대' in m:
         return '쫄대 15×38'
     if '10T' in m:

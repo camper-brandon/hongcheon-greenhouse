@@ -156,12 +156,20 @@ for nm, m, v in ref:
 # ── 조립 슬라이드 · 부재 타임라인 (assembly_seq.py — 영상과 같은 순서)
 import assembly_seq as AS
 _seq = AS.build()
-ORDER = {p['n']: i for i, p in enumerate(_seq['parts'])}
+#  R28: 반턱 조각(같은 이름 여러 상자)은 타임라인에서 한 부재로 센다
+_un, _first, _cum = [], {}, [0]
+for _q in _seq['parts']:
+    if _q['n'] not in _first:
+        _first[_q['n']] = len(_un); _un.append(_q)
+    _cum.append(len(_un))
+ORDER = dict(_first)
 for _p in parts:
     _p['o'] = ORDER.get(_p['n'], -1)                      # −1 = 순서 밖 (참고 부재 · 단면선) → 맨 끝에
 SLIDES = AS.slides(_seq)
-SEQN = len(_seq['parts'])
-SEQ_INFO = [dict(p=p['p'], name=p['name'], L=p['L'], s=p['s'], cap=p['cap']) for p in _seq['parts']]
+for _s in SLIDES:
+    _s['i0'], _s['i1'] = _cum[_s['i0']], _cum[_s['i1']]
+SEQN = len(_un)
+SEQ_INFO = [dict(p=p['p'], name=p['name'], L=p['L'], s=p['s'], cap=p['cap']) for p in _un]
 
 out = dict(rev='R28 · ' + C.REV_WI, date=__import__('datetime').date.today().isoformat(),   # 화면 머리 — 모델 판 (cad.REV 는 실시도면 R24 에 묶여 있다)
             L=L, W=W, apex=G.APEX, top=G.ROOFTOP, gl=GL,

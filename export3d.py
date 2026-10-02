@@ -163,3 +163,11 @@ out = dict(rev=C.REV, date=C.DATE, L=L, W=W, apex=G.APEX, top=G.ROOFTOP, gl=GL,
 dst = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model3d.json')
 json.dump(out, open(dst, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
 print('parts', len(parts), 'bytes', os.path.getsize(dst))
+
+
+# R27b — 사이트 화면(index.html) 도 같이 만든다 (전에는 model3d.json 만 갱신돼 화면이 R24c 에 멈춰 있었다)
+import io as _io, json as _json
+_m = _json.load(_io.open('model3d.json', encoding='utf-8'))
+_tpl = _io.open('viewer_tpl.html', encoding='utf-8').read()
+_io.open('index.html', 'w', encoding='utf-8').write(_tpl.replace('__MODEL__', _json.dumps(_m, ensure_ascii=False, separators=(',', ':'))))
+print('index.html', len(_m['parts']))
